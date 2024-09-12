@@ -340,11 +340,12 @@ def run(
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
     LOGGER.info(f"{'Ground/Pred':<15} {' '.join(f'{c:<10}' for c in names)} {'no_predict':<10}")
+    # Loop through ground-truth classes and confusion matrix values
     for i in range(confusion_matrix.shape[0]):  # Loop over ground-truth classes
-        LOGGER.info(f"{names[i]:<15}", end=" ")  # Print the ground-truth class
+        row = f"{names[i]:<15} "  # Initialize row with the ground-truth class name
         for j in range(confusion_matrix.shape[1]):  # Loop over predicted classes
-            LOGGER.info(f"{confusion_matrix[i, j]:<10}", end=" ")  # Print matrix values
-        LOGGER.info()  # New line after each row
+            row += f"{confusion_matrix[i, j]:<10} "  # Add matrix value to the row
+        LOGGER.info(row)  # Log the complete row
 
 def parse_opt():
     """
