@@ -184,6 +184,7 @@ def run(
     seen, windows, dt = 0, [], (Profile(device=device), Profile(device=device), Profile(device=device))
     import numpy as np
     confusion_matrix = np.zeros((6, 7), dtype=int)
+    tp,total = 0 , 0
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -265,6 +266,9 @@ def run(
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                     confusion_matrix[gti, int(c)] += n
+                    total += n
+                    if names[int(c)]==ground_truth_class:
+                        tp += n
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -295,6 +299,7 @@ def run(
                         save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
             else:
                 confusion_matrix[gti, 6] += 1
+                total += 1
             # Stream results
             im0 = annotator.result()
             if view_img:
@@ -345,6 +350,12 @@ def run(
         for j in range(confusion_matrix.shape[1]):  # Loop over predicted classes
             row += f"{confusion_matrix[i, j]:<10} "  # Add matrix value to the row
         LOGGER.info(row)  # Log the complete row
+    if total > 0:
+        accuracy = (tp / total) * 100
+    else:
+        accuracy = 0
+
+    LOGGER.info(f"Accuracy: {accuracy:.2f}%")
 
 def parse_opt():
     """
