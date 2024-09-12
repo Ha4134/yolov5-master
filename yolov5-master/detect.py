@@ -182,6 +182,8 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(device=device), Profile(device=device), Profile(device=device))
+    import numpy as np
+        confusion_matrix = np.zeros((6, 7), dtype=int)
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -233,9 +235,6 @@ def run(
             if match:
                 return match.group(1)  # Return the captured class name
             return None
-        
-        import numpy as np
-        confusion_matrix = np.zeros((6, 7), dtype=int)
 
         # Process predictions
         for i, det in enumerate(pred):  # per image
@@ -339,7 +338,7 @@ def run(
     if update:
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
-    LOGGER.info(f"{'Ground/Pred':<15} {' '.join(f'{c:<10}' for c in names)} {'no_predict':<10}")
+    LOGGER.info(f"{'Ground/Pred':<15} {' '.join(f'{name:<10}' for name in names)} {'no_predict':<10}")
     # Loop through ground-truth classes and confusion matrix values
     for i in range(confusion_matrix.shape[0]):  # Loop over ground-truth classes
         row = f"{names[i]:<15} "  # Initialize row with the ground-truth class name
