@@ -348,7 +348,7 @@ def run(
     for i in range(confusion_matrix.shape[0]):  # Loop over ground-truth classes
         row = f"{names[i]:<15} "  # Initialize row with the ground-truth class name
         for j in range(confusion_matrix.shape[1]):  # Loop over predicted classes
-            row += f"{confusion_matrix[i, j]:<10} "  # Add matrix value to the row
+            row += f"{confusion_matrix[i, j]:<15} "  # Add matrix value to the row
         LOGGER.info(row)  # Log the complete row
     if total > 0:
         accuracy = (tp / total) * 100
