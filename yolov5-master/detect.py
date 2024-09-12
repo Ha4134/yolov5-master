@@ -343,7 +343,7 @@ def run(
     if update:
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
-    LOGGER.info(f"{'Ground/Pred':<15} {' '.join(f'{names[c]:<10}' for c in names)} {'no_predict':<10}")
+    LOGGER.info(f"{'Ground/Pred':<15} {' '.join(f'{names[c]:<10}' for c in range(len(names)))} {'no_predict':<10}")
     # Loop through ground-truth classes and confusion matrix values
     for i in range(confusion_matrix.shape[0]):  # Loop over ground-truth classes
         row = f"{names[i]:<15} "  # Initialize row with the ground-truth class name
