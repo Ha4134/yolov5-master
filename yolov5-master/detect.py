@@ -225,6 +225,18 @@ def run(
                     writer.writeheader()
                 writer.writerow(data)
 
+        import re
+
+        def extract_class_from_path(path):
+            # Use a regular expression to capture the string between "{number}_" and "_{number}"
+            match = re.search(r'\d+_(.*?)_\d+', path.stem)  # path.stem gives the file name without the extension
+            if match:
+                return match.group(1)  # Return the captured class name
+            return None
+        
+        import numpy as np
+        confusion_matrix = np.zeros((6, 7), dtype=int)
+
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
@@ -241,14 +253,19 @@ def run(
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+            ground_truth_class = extract_class_from_path(p)
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
+                for c in det[:, 5].unique():
+                    if names[int(c)]==ground_truth_class:
+                        gti = int(c)
                 # Print results
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    confusion_matrix[gti, int(c)] += n
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -277,7 +294,8 @@ def run(
                         annotator.box_label(xyxy, label, color=colors(c, True))
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
-
+            else:
+                confusion_matrix[gti, 6] += 1
             # Stream results
             im0 = annotator.result()
             if view_img:
@@ -310,6 +328,8 @@ def run(
         # Print time (inference-only)
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
 
+
+
     # Print results
     t = tuple(x.t / seen * 1e3 for x in dt)  # speeds per image
     LOGGER.info(f"Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}" % t)
@@ -319,6 +339,12 @@ def run(
     if update:
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
+    LOGGER.info(f"{'Ground/Pred':<15} {' '.join(f'{c:<10}' for c in names)} {'no_predict':<10}")
+    for i in range(confusion_matrix.shape[0]):  # Loop over ground-truth classes
+        LOGGER.info(f"{names[i]:<15}", end=" ")  # Print the ground-truth class
+        for j in range(confusion_matrix.shape[1]):  # Loop over predicted classes
+            LOGGER.info(f"{confusion_matrix[i, j]:<10}", end=" ")  # Print matrix values
+        LOGGER.info()  # New line after each row
 
 def parse_opt():
     """
