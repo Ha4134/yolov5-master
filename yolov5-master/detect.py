@@ -183,7 +183,7 @@ def run(
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(device=device), Profile(device=device), Profile(device=device))
     import numpy as np
-        confusion_matrix = np.zeros((6, 7), dtype=int)
+    confusion_matrix = np.zeros((6, 7), dtype=int)
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
