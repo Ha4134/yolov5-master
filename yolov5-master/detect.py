@@ -225,11 +225,7 @@ def run(
                     writer.writeheader()
                 writer.writerow(data)
 
-        # Initialize performance metrics
-        tp = {name: 0 for name in names}  # true positives per class
-        fp = {name: 0 for name in names}  # false positives per class
-        fn = {name: 0 for name in names}  # false negatives per class
-
+        # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
             if webcam:  # batch_size >= 1
@@ -245,40 +241,15 @@ def run(
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
-            
-            # Assuming ground-truth (gt) is available, format: [class, x1, y1, x2, y2]
-            gt_boxes = ground_truth_boxes  # List of ground truth boxes for the image
-            
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
-                # Sort detections by confidence score (optional, but useful for precision/recall)
-                det = det[det[:, 4].argsort(descending=True)]
+                # Print results
+                for c in det[:, 5].unique():
+                    n = (det[:, 5] == c).sum()  # detections per class
+                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
-                # Compute metrics: true positives, false positives, and false negatives
-                for *xyxy, conf, cls in reversed(det):
-                    c = int(cls)  # integer class
-                    detected_box = [int(x.item()) for x in xyxy]  # Detected bounding box
-                    iou_threshold = 0.5  # IoU threshold for a match
-                    
-                    # Find matching ground truth
-                    matched_gt = None
-                    for gt_box in gt_boxes:
-                        if iou(detected_box, gt_box[1:]) > iou_threshold and gt_box[0] == c:
-                            matched_gt = gt_box
-                            break
-                    
-                    if matched_gt:
-                        tp[names[c]] += 1  # True positive
-                        gt_boxes.remove(matched_gt)  # Remove matched ground truth
-                    else:
-                        fp[names[c]] += 1  # False positive
-
-                # For remaining ground truth boxes, count as false negatives
-                for gt_box in gt_boxes:
-                    fn[names[gt_box[0]]] += 1
-                    
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     c = int(cls)  # integer class
